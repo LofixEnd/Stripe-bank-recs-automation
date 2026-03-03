@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Stripe Reconciliation Accelerator{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 40px auto;">
+    <h2 class="text-center">Login</h2>
+    <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.username.label }}<br>
+            {{ form.username(size=32, class_='') }}
+        </div>
+        <div class="form-group">
+            {{ form.password.label }}<br>
+            {{ form.password(size=32, class_='') }}
+        </div>
+        <div class="form-group">
+            {{ form.submit(class_='btn btn-primary') }}
+        </div>
+    </form>
+    <p class="text-center" style="margin-top:10px;"><a href="/">Back to Home</a></p>
+</div>
+{% endblock %}

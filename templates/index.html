@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Client Login - Stripe Reconciliation Accelerator{% endblock %}
+
+{% block extra_css %}
+<style>
+    .client-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 30px;
+        margin: 40px 0;
+    }
+
+    .client-card {
+        background: white;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+        text-align: center;
+    }
+
+    .client-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+
+    .client-icon {
+        font-size: 48px;
+        margin-bottom: 20px;
+    }
+
+    .client-card h3 {
+        margin-bottom: 10px;
+        font-size: 20px;
+    }
+
+    .client-card p {
+        color: var(--text-light);
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    .client-card a {
+        display: block;
+    }
+
+    .intro-section {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        margin-bottom: 40px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin: 30px 0;
+    }
+
+    .feature {
+        padding: 20px;
+        background: var(--light-gray);
+        border-radius: 4px;
+    }
+
+    .feature-icon {
+        font-size: 32px;
+        margin-bottom: 10px;
+    }
+
+    .feature h4 {
+        margin-bottom: 8px;
+        color: var(--primary-color);
+    }
+
+    .feature p {
+        font-size: 13px;
+        color: var(--text-light);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="intro-section">
+    <h2>Welcome to the Stripe Reconciliation Accelerator</h2>
+    <p>Reduce manual reconciliation time by 50-70% with automated matching and exception detection.</p>
+    
+    <div class="features">
+        <div class="feature">
+            <div class="feature-icon">⚡</div>
+            <h4>Fast Matching</h4>
+            <p>Automatically match Stripe payouts to bank deposits in seconds</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🔍</div>
+            <h4>Exception Detection</h4>
+            <p>Instantly identify mismatches, missing payouts, and discrepancies</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">📊</div>
+            <h4>Excel Reports</h4>
+            <p>Multi-sheet reconciliation reports with executive summaries</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🔒</div>
+            <h4>Secure & Private</h4>
+            <p>Client-isolated processing with in-memory file handling</p>
+        </div>
+    </div>
+</div>
+
+<h2 class="text-center">Select Your Client Portal</h2>
+
+<div class="client-grid">
+    {% for client_slug, client_info in clients.items() %}
+    <div class="client-card">
+        <div class="client-icon">👤</div>
+        <h3>{{ client_info['name'] }}</h3>
+        <p>{{ client_info['email'] }}</p>
+        <a href="/portal/{{ client_slug }}" class="btn btn-primary">Access Portal</a>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="card" style="margin-top: 40px; background: var(--light-gray);">
+    <h3>How It Works</h3>
+    <ol style="margin-left: 20px; color: var(--text-light);">
+        <li><strong>Upload Files:</strong> Drag and drop your Stripe balance, payout, and bank statement CSV files</li>
+        <li><strong>Automatic Matching:</strong> The system matches payouts to bank deposits by amount</li>
+        <li><strong>Exception Detection:</strong> Identifies mismatches, missing payouts, and discrepancies</li>
+        <li><strong>Report Generation:</strong> Download a comprehensive Excel report with detailed analysis</li>
+    </ol>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <h3>Required CSV Files</h3>
+    <table>
+        <tr>
+            <th>File Type</th>
+            <th>Description</th>
+            <th>Required Columns (Examples)</th>
+        </tr>
+        <tr>
+            <td><strong>Stripe Balance</strong></td>
+            <td>Current account balance breakdown</td>
+            <td>Charges, Refunds, Fees, Disputes, Balance ID</td>
+        </tr>
+        <tr>
+            <td><strong>Stripe Payouts</strong></td>
+            <td>All payout transactions from Stripe</td>
+            <td>Payout ID, Amount, Date, Status</td>
+        </tr>
+        <tr>
+            <td><strong>Bank Statement</strong></td>
+            <td>Bank account deposits and transactions</td>
+            <td>Date, Description, Amount, Balance</td>
+        </tr>
+    </table>
+</div>
+{% endblock %}

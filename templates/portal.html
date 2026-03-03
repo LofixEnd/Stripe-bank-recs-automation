@@ -1,0 +1,587 @@
+{% extends "base.html" %}
+
+{% block title %}Client Portal - Stripe Reconciliation Accelerator{% endblock %}
+
+{% block extra_css %}
+<style>
+    .portal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .portal-header h2 {
+        margin: 0;
+    }
+
+    .client-badge {
+        display: inline-block;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .upload-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin: 30px 0;
+    }
+
+    .upload-zone {
+        border: 2px dashed var(--border-color);
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background-color: var(--light-gray);
+    }
+
+    .upload-zone:hover {
+        border-color: var(--primary-color);
+        background-color: white;
+    }
+
+    .upload-zone.dragover {
+        border-color: var(--primary-color);
+        background-color: #f0f4f8;
+        transform: scale(1.02);
+    }
+
+    .upload-zone input[type="file"] {
+        display: none;
+    }
+
+    .upload-icon {
+        font-size: 48px;
+        margin-bottom: 10px;
+    }
+
+    .upload-zone h3 {
+        margin: 10px 0;
+        font-size: 16px;
+    }
+
+    .upload-zone p {
+        font-size: 12px;
+        color: var(--text-light);
+        margin: 5px 0;
+    }
+
+    .file-info {
+        background-color: #dcf0dd;
+        border: 1px solid var(--success-color);
+        border-radius: 4px;
+        padding: 10px;
+        margin-top: 15px;
+        font-size: 12px;
+        color: #2d542f;
+    }
+
+    .file-info .filename {
+        font-weight: bold;
+    }
+
+    .control-section {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin: 30px 0;
+        flex-wrap: wrap;
+    }
+
+    .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+    }
+
+    .status-item {
+        background: white;
+        padding: 15px;
+        border-radius: 4px;
+        border-left: 4px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .status-item.loaded {
+        border-left-color: var(--success-color);
+        background-color: #f5fff5;
+    }
+
+    .status-item.pending {
+        border-left-color: var(--warning-color);
+        background-color: #fffdf5;
+    }
+
+    .status-icon {
+        font-size: 24px;
+    }
+
+    .status-content h4 {
+        margin: 0 0 5px 0;
+        font-size: 14px;
+    }
+
+    .status-content p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--text-light);
+    }
+
+    .preview-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 30px 0;
+    }
+
+    .preview-table {
+        font-size: 13px;
+    }
+
+    .preview-table th {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .preview-table td {
+        padding: 8px;
+    }
+
+    .exceptions-list {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+
+    .exception-item {
+        padding: 12px;
+        border-left: 4px solid var(--error-color);
+        background-color: #fce1e1;
+        margin-bottom: 10px;
+        border-radius: 2px;
+        font-size: 13px;
+    }
+
+    .progress-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        display: none;
+    }
+
+    .progress-section.active {
+        display: block;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 24px;
+        background-color: var(--light-gray);
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 10px 0;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        width: 0%;
+        transition: width 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .help-text {
+        background-color: #d1ecf1;
+        border-left: 4px solid #0c5460;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 20px 0;
+        font-size: 13px;
+        color: #0c5460;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="portal-header">
+    <div>
+        <h2>Reconciliation Portal</h2>
+        <p class="text-muted">Client: {{ client_info['name'] }}</p>
+    </div>
+    <div class="client-badge">{{ client_slug.upper() }}</div>
+</div>
+
+<div class="help-text">
+    <strong>📋 Instructions:</strong> Upload your three CSV files below (Stripe Balance, Stripe Payouts, and Bank Statement). Once all files are uploaded, click "Process & Download Report" to generate your reconciliation report.
+</div>
+
+<!-- Status Overview -->
+<div class="status-grid">
+    <div class="status-item" id="status-balance">
+        <div class="status-icon">📊</div>
+        <div class="status-content">
+            <h4>Stripe Balance</h4>
+            <p>Pending upload</p>
+        </div>
+    </div>
+    <div class="status-item" id="status-payout">
+        <div class="status-icon">💳</div>
+        <div class="status-content">
+            <h4>Stripe Payouts</h4>
+            <p>Pending upload</p>
+        </div>
+    </div>
+    <div class="status-item" id="status-bank">
+        <div class="status-icon">🏦</div>
+        <div class="status-content">
+            <h4>Bank Statement</h4>
+            <p>Pending upload</p>
+        </div>
+    </div>
+</div>
+
+<!-- File Upload Zones -->
+<h3>Upload CSV Files</h3>
+<div class="upload-section">
+    <!-- Stripe Balance -->
+    <div class="upload-zone" id="zone-balance" onclick="document.getElementById('file-balance').click()">
+        <div class="upload-icon">📊</div>
+        <h3>Stripe Balance</h3>
+        <p>CSV file containing account balance breakdown</p>
+        <input type="file" id="file-balance" accept=".csv" data-type="balance">
+        <div class="file-info" id="info-balance" style="display: none;">
+            <span class="filename"></span>
+            <br><small>✓ Ready to process</small>
+        </div>
+    </div>
+
+    <!-- Stripe Payouts -->
+    <div class="upload-zone" id="zone-payout" onclick="document.getElementById('file-payout').click()">
+        <div class="upload-icon">💳</div>
+        <h3>Stripe Payouts</h3>
+        <p>CSV file with all payout transactions</p>
+        <input type="file" id="file-payout" accept=".csv" data-type="payout">
+        <div class="file-info" id="info-payout" style="display: none;">
+            <span class="filename"></span>
+            <br><small>✓ Ready to process</small>
+        </div>
+    </div>
+
+    <!-- Bank Statement -->
+    <div class="upload-zone" id="zone-bank" onclick="document.getElementById('file-bank').click()">
+        <div class="upload-icon">🏦</div>
+        <h3>Bank Statement</h3>
+        <p>CSV file with bank account transactions</p>
+        <input type="file" id="file-bank" accept=".csv" data-type="bank">
+        <div class="file-info" id="info-bank" style="display: none;">
+            <span class="filename"></span>
+            <br><small>✓ Ready to process</small>
+        </div>
+    </div>
+</div>
+
+<!-- Control Buttons and parameters -->
+<div class="control-section" style="flex-direction: column; align-items: center;">
+    <div style="margin-bottom:10px; display:flex; gap:20px; flex-wrap: wrap; justify-content:center;">
+        <div>
+            <label for="input-opening" style="font-weight:bold;">Opening Balance:</label>
+            <input type="number" step="0.01" id="input-opening" placeholder="0.00" style="width:100px;" />
+        </div>
+        <div>
+            <label for="input-tolerance" style="font-weight:bold;">Tolerance:</label>
+            <input type="number" step="0.01" id="input-tolerance" placeholder="5.00" style="width:100px;" />
+        </div>
+    </div>
+    <div>
+        <button id="btn-process" class="btn btn-success" disabled>
+            ⚙️ Process & Download Report
+        </button>
+        <button id="btn-reset" class="btn btn-danger">
+            🔄 Reset Session
+        </button>
+        <a href="/" class="btn btn-primary">← Back to Clients</a>
+    </div>
+</div>
+
+<!-- Progress Section -->
+<div class="progress-section" id="progress-section">
+    <h3>Processing...</h3>
+    <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill">0%</div>
+    </div>
+    <p class="text-muted">This may take a moment depending on file size.</p>
+</div>
+
+<!-- Preview Section -->
+<div id="preview-section" style="display: none;">
+    <div class="preview-section">
+        <h3>Data Preview</h3>
+        <table class="preview-table">
+            <tr>
+                <th>File</th>
+                <th>Rows</th>
+                <th>Status</th>
+            </tr>
+            <tr>
+                <td>Stripe Balance</td>
+                <td id="preview-balance-rows">-</td>
+                <td id="preview-balance-status">-</td>
+            </tr>
+            <tr>
+                <td>Stripe Payouts</td>
+                <td id="preview-payout-rows">-</td>
+                <td id="preview-payout-status">-</td>
+            </tr>
+            <tr>
+                <td>Bank Statement</td>
+                <td id="preview-bank-rows">-</td>
+                <td id="preview-bank-status">-</td>
+            </tr>
+        </table>
+        <div id="exceptions-container"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const clientSlug = '{{ client_slug }}';
+    const fileTypes = ['balance', 'payout', 'bank'];
+    let uploadedFiles = {};
+
+    // Initialize drag-and-drop
+    fileTypes.forEach(type => {
+        const zone = document.getElementById(`zone-${type}`);
+        const input = document.getElementById(`file-${type}`);
+
+        // File input change
+        input.addEventListener('change', () => handleFileSelect(type, input.files[0]));
+
+        // Drag-over
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zone.classList.add('dragover');
+        });
+
+        zone.addEventListener('dragleave', () => {
+            zone.classList.remove('dragover');
+        });
+
+        // Drop
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect(type, e.dataTransfer.files[0]);
+            }
+        });
+    });
+
+    function getCsrfToken() {
+        const m = document.querySelector('meta[name="csrf-token"]');
+        return m ? m.getAttribute('content') : '';
+    }
+
+    function handleFileSelect(type, file) {
+        if (!file) return;
+
+        if (!file.name.endsWith('.csv')) {
+            showError('Please upload a CSV file');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('file_type', type);
+
+        const button = document.getElementById(`btn-process`);
+        button.disabled = true;
+
+        fetch(`/api/portal/${clientSlug}/upload`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCsrfToken()},
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                uploadedFiles[type] = file.name;
+                updateUI(type, file.name);
+                showSuccess(`${type.charAt(0).toUpperCase() + type.slice(1)} file uploaded`);
+                checkReadyToProcess();
+            } else {
+                showError(data.message || 'Upload failed');
+            }
+        })
+        .catch(err => {
+            showError('Upload error: ' + err.message);
+        });
+    }
+
+    function updateUI(type, filename) {
+        const zone = document.getElementById(`zone-${type}`);
+        const info = document.getElementById(`info-${type}`);
+        const status = document.getElementById(`status-${type}`);
+
+        info.querySelector('.filename').textContent = filename;
+        info.style.display = 'block';
+
+        status.classList.add('loaded');
+        status.classList.remove('pending');
+        status.querySelector('.status-icon').textContent = '✓';
+        status.querySelector('.status-content p').textContent = 'Successfully uploaded';
+    }
+
+    function checkReadyToProcess() {
+        if (uploadedFiles.balance && uploadedFiles.payout && uploadedFiles.bank) {
+            document.getElementById('btn-process').disabled = false;
+            loadPreview();
+        }
+    }
+
+    function loadPreview() {
+        fetch(`/api/portal/${clientSlug}/preview`, {
+            headers: {'X-CSRFToken': getCsrfToken()}
+        })
+            .then(r => r.json())
+            .then(data => {
+                displayPreview(data);
+            })
+            .catch(err => console.error('Preview error:', err));
+    }
+
+    function displayPreview(data) {
+        document.getElementById('preview-balance-rows').textContent = data.balance_rows;
+        document.getElementById('preview-payout-rows').textContent = data.payout_rows;
+        document.getElementById('preview-bank-rows').textContent = data.bank_rows;
+
+        document.getElementById('preview-balance-status').textContent = data.balance_rows > 0 ? '✓ Ready' : '⚠️ Empty';
+        document.getElementById('preview-payout-status').textContent = data.payout_rows > 0 ? '✓ Ready' : '⚠️ Empty';
+        document.getElementById('preview-bank-status').textContent = data.bank_rows > 0 ? '✓ Ready' : '⚠️ Empty';
+
+        const container = document.getElementById('exceptions-container');
+        if (data.exceptions.length > 0) {
+            container.innerHTML = '<h4 style="color: var(--error-color); margin-top: 20px;">⚠️ Pre-processing Issues Detected</h4>';
+            data.exceptions.forEach(exc => {
+                const item = document.createElement('div');
+                item.className = 'exception-item';
+                item.textContent = exc;
+                container.appendChild(item);
+            });
+        }
+
+        document.getElementById('preview-section').style.display = 'block';
+    }
+
+    document.getElementById('btn-process').addEventListener('click', () => {
+        document.getElementById('progress-section').classList.add('active');
+        const fillBar = document.getElementById('progress-fill');
+        let progress = 0;
+
+        const interval = setInterval(() => {
+            progress = Math.min(progress + Math.random() * 30, 90);
+            fillBar.style.width = progress + '%';
+            fillBar.textContent = Math.floor(progress) + '%';
+        }, 200);
+
+        // read parameter inputs
+        const opening = parseFloat(document.getElementById('input-opening').value) || 0.0;
+        const tolerance = parseFloat(document.getElementById('input-tolerance').value) || 5.0;
+
+        fetch(`/api/portal/${clientSlug}/process`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                opening_balance: opening,
+                tolerance: tolerance
+            })
+        })
+        .then(response => {
+            clearInterval(interval);
+
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.error || 'Processing failed');
+                });
+            }
+
+            fillBar.style.width = '100%';
+            fillBar.textContent = '100%';
+
+            return response.blob().then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reconciliation_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                showSuccess('Report generated and downloaded successfully!');
+                setTimeout(() => location.reload(), 2000);
+            });
+        })
+        .catch(err => {
+            clearInterval(interval);
+            document.getElementById('progress-section').classList.remove('active');
+            showError('Error: ' + err.message);
+        });
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+        if (confirm('Reset session? All uploaded files will be cleared.')) {
+            fetch(`/api/portal/${clientSlug}/reset`, {
+                method: 'POST',
+                headers: {'X-CSRFToken': getCsrfToken()}
+            })
+            .then(() => {
+                location.reload();
+            })
+            .catch(err => showError('Reset error: ' + err.message));
+        }
+    });
+
+    // Check status on page load
+    window.addEventListener('load', () => {
+        fetch(`/api/portal/${clientSlug}/status`, {headers: {'X-CSRFToken': getCsrfToken()}})
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ready') {
+                    if (data.balance) uploadedFiles.balance = 'loaded';
+                    if (data.payout) uploadedFiles.payout = 'loaded';
+                    if (data.bank) uploadedFiles.bank = 'loaded';
+                    
+                    if (data.balance) updateUI('balance', '(restored from session)');
+                    if (data.payout) updateUI('payout', '(restored from session)');
+                    if (data.bank) updateUI('bank', '(restored from session)');
+                    
+                    checkReadyToProcess();
+                }
+            });
+    });
+</script>
+{% endblock %}
